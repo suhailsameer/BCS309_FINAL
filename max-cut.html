@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Max-Cut — Interactive Algorithm Explorer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --surface3: #1e2330;
+    --border: #2a3040;
+    --border2: #363f52;
+    --text: #e8ecf5;
+    --text2: #8b95aa;
+    --text3: #5a637a;
+    --accent: #4af0a0;
+    --accent2: #2dd8ff;
+    --accent3: #ff6b9d;
+    --accent4: #ffa040;
+    --set-s: #4af0a0;
+    --set-v: #ff6b9d;
+    --cut-edge: #ffa040;
+    --int-edge: #2a3040;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 4px 10px;
+    background: var(--accent);
+    color: var(--bg);
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  header h1 span { color: var(--accent); }
+  .header-meta {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  /* NAV TABS */
+  .nav-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0 32px;
+    gap: 4px;
+  }
+  .nav-tab {
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* PANELS */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* MAIN LAYOUT */
+  .tool-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 97px);
+  }
+  .controls-col {
+    border-right: 1px solid var(--border);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    max-height: calc(100vh - 97px);
+  }
+  .viz-col {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+  }
+
+  /* SECTION LABELS */
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 8px;
+  }
+
+  /* CONTROL GROUPS */
+  .ctrl-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ctrl-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  label {
+    font-size: 12px;
+    color: var(--text2);
+    font-weight: 500;
+  }
+
+  input[type="text"], input[type="number"], textarea, select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 10px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+  }
+  textarea { resize: vertical; min-height: 80px; }
+
+  /* PRESET BUTTONS */
+  .preset-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+  }
+  .preset-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text2);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 8px 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .preset-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .preset-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(74,240,160,0.06); }
+
+  /* SPEED SLIDER */
+  .slider-wrap { display: flex; align-items: center; gap: 10px; }
+  input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--surface3);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+  .slider-val {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+    min-width: 30px;
+  }
+
+  /* PLAYBACK BUTTONS */
+  .playback-row {
+    display: flex;
+    gap: 6px;
+  }
+  .btn {
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--sans);
+  }
+  .btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .btn-primary:hover { background: #2ed880; }
+  .btn-secondary { background: transparent; color: var(--text2); border-color: var(--border2); }
+  .btn-secondary:hover { color: var(--text); border-color: var(--text2); }
+  .btn-danger { background: transparent; color: var(--accent3); border-color: var(--accent3); }
+  .btn-danger:hover { background: rgba(255,107,157,0.08); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-icon { font-size: 14px; }
+
+  /* STATUS BADGE */
+  .status-bar {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text3);
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .status-dot.idle { background: var(--text3); }
+  .status-dot.running { background: var(--accent); animation: pulse 1s infinite; }
+  .status-dot.done { background: var(--accent2); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .status-text { font-size: 12px; color: var(--text2); flex: 1; }
+  .step-counter { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+
+  /* STATS ROW */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .stat-val {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .stat-val.red { color: var(--accent3); }
+  .stat-val.blue { color: var(--accent2); }
+  .stat-val.orange { color: var(--accent4); }
+  .stat-label { font-size: 10px; color: var(--text3); margin-top: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* SVG CANVAS */
+  .canvas-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+  }
+  .canvas-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .canvas-title { font-size: 13px; font-weight: 600; }
+  .legend {
+    margin-left: auto;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .legend-line { width: 20px; height: 3px; border-radius: 2px; }
+
+  svg { display: block; width: 100%; }
+
+  /* PSEUDOCODE */
+  .pseudo-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .pseudo-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    gap: 12px;
+  }
+  .pseudo-tab {
+    cursor: pointer;
+    color: var(--text2);
+    padding-bottom: 2px;
+    border-bottom: 2px solid transparent;
+    font-size: 12px;
+  }
+  .pseudo-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .pseudo-body {
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.7;
+    counter-reset: line;
+  }
+  .pl {
+    display: block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: var(--text2);
+    transition: background 0.2s, color 0.2s;
+    position: relative;
+  }
+  .pl::before {
+    content: counter(line);
+    counter-increment: line;
+    color: var(--text3);
+    display: inline-block;
+    width: 24px;
+    font-size: 10px;
+    user-select: none;
+  }
+  .pl.highlight { background: rgba(74,240,160,0.12); color: var(--accent); }
+  .kw { color: var(--accent2); }
+  .cm { color: var(--text3); font-style: italic; }
+  .fn { color: var(--accent4); }
+  .str { color: var(--accent); }
+
+  /* STEP EXPLANATION */
+  .explain-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text2);
+    min-height: 48px;
+    line-height: 1.6;
+  }
+  .explain-box strong { color: var(--accent); }
+
+  /* GROWTH CHART */
+  .chart-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  /* COLLAPSIBLE */
+  .collapsible { margin-bottom: 0; }
+  .coll-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    user-select: none;
+  }
+  .coll-header:hover .coll-title { color: var(--accent); }
+  .coll-title { font-size: 14px; font-weight: 600; }
+  .coll-arrow { color: var(--text3); transition: transform 0.3s; font-family: var(--mono); font-size: 12px; }
+  .coll-body { padding: 20px; font-size: 13px; line-height: 1.8; color: var(--text2); }
+  .coll-body.hidden { display: none; }
+
+  /* EDUCATION PANEL */
+  .edu-layout { max-width: 900px; margin: 0 auto; padding: 32px; }
+  .edu-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .concept-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 0;
+  }
+  .concept-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .concept-card h4 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--accent2); }
+  .concept-card p { font-size: 12px; color: var(--text2); line-height: 1.7; }
+  .math-block {
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    margin: 12px 0;
+    line-height: 1.8;
+  }
+  .proof-step {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .proof-step:last-child { border-bottom: none; }
+  .proof-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    background: rgba(74,240,160,0.1);
+    border: 1px solid rgba(74,240,160,0.3);
+    border-radius: 4px;
+    padding: 3px 8px;
+    height: fit-content;
+    flex-shrink: 0;
+  }
+  .proof-content { font-size: 13px; color: var(--text2); line-height: 1.7; }
+  .proof-content strong { color: var(--text); }
+
+  /* COMPARISON PANEL */
+  .compare-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .compare-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .compare-card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .badge-red { background: rgba(255,107,157,0.12); color: var(--accent3); border: 1px solid rgba(255,107,157,0.3); }
+  .badge-green { background: rgba(74,240,160,0.1); color: var(--accent); border: 1px solid rgba(74,240,160,0.3); }
+
+  /* REDUCTION DIAGRAM */
+  .reduction-diagram {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+  .rd-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin: 12px 0;
+    flex-wrap: wrap;
+  }
+  .rd-box {
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .rd-box.np { border-color: var(--accent2); color: var(--accent2); }
+  .rd-box.mc { border-color: var(--accent); color: var(--accent); }
+  .rd-box.nae { border-color: var(--accent4); color: var(--accent4); }
+  .rd-arrow { color: var(--text3); font-size: 18px; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* COMPARISON MODE */
+  .compare-outer { padding: 24px; }
+  .compare-controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-badge">BCS 309</div>
+  <h1>Max-Cut <span>Algorithm Explorer</span></h1>
+  <div class="header-meta">Sameer, Suhail &nbsp;·&nbsp; Spring 2026</div>
+</header>
+
+<div class="nav-tabs">
+  <div class="nav-tab active" onclick="switchTab('tool')">Interactive Tool</div>
+  <div class="nav-tab" onclick="switchTab('compare')">Comparison Mode</div>
+  <div class="nav-tab" onclick="switchTab('education')">NP-Completeness Proof</div>
+</div>
+
+<!-- ===================== TOOL PANEL ===================== -->
+<div class="panel active" id="panel-tool">
+<div class="tool-layout">
+  <!-- LEFT: Controls -->
+  <div class="controls-col">
+    <div>
+      <div class="section-label">Graph Input</div>
+      <div class="ctrl-group">
+        <label>Edge list (e.g. 0-1, 1-2, 2-3)</label>
+        <textarea id="edgeInput" placeholder="0-1, 1-2, 2-3, 0-3, 1-3">0-1, 1-2, 2-3, 3-0, 0-2</textarea>
+        <button class="btn btn-primary" onclick="buildGraph()">Build Graph</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Preset Examples</div>
+      <div class="preset-grid">
+        <div class="preset-btn" onclick="loadPreset(0)">K₄ Complete</div>
+        <div class="preset-btn" onclick="loadPreset(1)">Cycle C₅</div>
+        <div class="preset-btn active" onclick="loadPreset(2)">Diamond</div>
+        <div class="preset-btn" onclick="loadPreset(3)">Bipartite</div>
+        <div class="preset-btn" onclick="loadPreset(4)">Path P₅</div>
+        <div class="preset-btn" onclick="loadPreset(5)">Petersen</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Algorithm</div>
+      <div class="ctrl-group">
+        <div class="ctrl-row">
+          <select id="algoSelect" onchange="resetState()">
+            <option value="greedy">Local Search (Greedy)</option>
+            <option value="bruteforce">Brute Force (Exact)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Animation Speed</div>
+      <div class="slider-wrap">
+        <span style="font-size:11px;color:var(--text3)">Slow</span>
+        <input type="range" id="speedSlider" min="1" max="10" value="5">
+        <span class="slider-val" id="speedVal">5</span>
+        <span style="font-size:11px;color:var(--text3)">Fast</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Playback</div>
+      <div class="playback-row">
+        <button class="btn btn-primary" id="btnPlay" onclick="playAlgo()"><span class="btn-icon">▶</span>Play</button>
+        <button class="btn btn-secondary" id="btnStep" onclick="stepAlgo()"><span class="btn-icon">⏭</span>Step</button>
+        <button class="btn btn-secondary" id="btnPause" onclick="pauseAlgo()" disabled><span class="btn-icon">⏸</span>Pause</button>
+        <button class="btn btn-danger" onclick="resetState()"><span class="btn-icon">↺</span></button>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-dot idle" id="statusDot"></div>
+      <div class="status-text" id="statusText">Ready — build a graph to start</div>
+      <div class="step-counter" id="stepCounter">Step 0</div>
+    </div>
+
+    <div>
+      <div class="section-label">Statistics</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-val" id="statCutSize">0</div>
+          <div class="stat-label">Cut Edges</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val blue" id="statTotalEdges">0</div>
+          <div class="stat-label">Total Edges</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val orange" id="statOps">0</div>
+          <div class="stat-label">Operations</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val red" id="statApprox">—</div>
+          <div class="stat-label">Approx Ratio</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Visualization -->
+  <div class="viz-col">
+    <div class="canvas-wrap">
+      <div class="canvas-header">
+        <span class="canvas-title">Graph Visualization</span>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--set-s)"></div> Set S</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--set-v)"></div> Set V∖S</div>
+          <div class="legend-item"><div class="legend-line" style="background:var(--cut-edge)"></div> Cut edge</div>
+          <div class="legend-item"><div class="legend-line" style="background:var(--int-edge)"></div> Internal</div>
+        </div>
+      </div>
+      <svg id="graphSvg" viewBox="0 0 700 380" style="height:380px"></svg>
+    </div>
+
+    <div class="explain-box" id="explainBox">
+      Build a graph using the controls on the left, then press <strong>Play</strong> or <strong>Step</strong> to begin.
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="pseudo-wrap">
+        <div class="pseudo-header">
+          <span class="pseudo-tab active" id="ptab0" onclick="switchPseudo(0)">Local Search</span>
+          <span class="pseudo-tab" id="ptab1" onclick="switchPseudo(1)">Brute Force</span>
+        </div>
+        <div class="pseudo-body" id="pseudoLS">
+<span class="pl" id="ls0"><span class="kw">function</span> <span class="fn">LocalSearch</span>(G):</span>
+<span class="pl" id="ls1">  S ← random subset of V  <span class="cm">// init partition</span></span>
+<span class="pl" id="ls2">  <span class="kw">repeat</span></span>
+<span class="pl" id="ls3">    improved ← <span class="str">false</span></span>
+<span class="pl" id="ls4">    <span class="kw">for each</span> vertex v <span class="kw">in</span> V:</span>
+<span class="pl" id="ls5">      gain ← cutGain(v, S)</span>
+<span class="pl" id="ls6">      <span class="kw">if</span> gain > 0:</span>
+<span class="pl" id="ls7">        flip(v)  <span class="cm">// move v to other side</span></span>
+<span class="pl" id="ls8">        improved ← <span class="str">true</span></span>
+<span class="pl" id="ls9">  <span class="kw">until</span> not improved  <span class="cm">// local max</span></span>
+<span class="pl" id="ls10">  <span class="kw">return</span> cut(S)</span>
+        </div>
+        <div class="pseudo-body" id="pseudoBF" style="display:none">
+<span class="pl" id="bf0"><span class="kw">function</span> <span class="fn">BruteForce</span>(G, n):</span>
+<span class="pl" id="bf1">  bestCut ← 0; bestS ← ∅</span>
+<span class="pl" id="bf2">  <span class="kw">for</span> mask = 0 <span class="kw">to</span> 2ⁿ−1:</span>
+<span class="pl" id="bf3">    S ← vertices where bit set</span>
+<span class="pl" id="bf4">    cutVal ← countCutEdges(S)</span>
+<span class="pl" id="bf5">    <span class="kw">if</span> cutVal > bestCut:</span>
+<span class="pl" id="bf6">      bestCut ← cutVal</span>
+<span class="pl" id="bf7">      bestS ← S</span>
+<span class="pl" id="bf8">  <span class="kw">return</span> bestCut, bestS</span>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="section-label" style="margin-bottom:12px">Growth Curve — Operations vs |V|</div>
+        <svg id="growthChart" viewBox="0 0 300 180" style="width:100%;height:180px"></svg>
+        <div style="display:flex;gap:16px;margin-top:8px">
+          <div class="legend-item"><div class="legend-line" style="background:var(--accent3)"></div><span style="font-size:11px;color:var(--text2)">Brute Force 2ⁿ</span></div>
+          <div class="legend-item"><div class="legend-line" style="background:var(--accent)"></div><span style="font-size:11px;color:var(--text2)">Local Search n²</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===================== COMPARE PANEL ===================== -->
+<div class="panel" id="panel-compare">
+<div class="compare-outer">
+  <div class="compare-controls">
+    <div class="section-label" style="margin:0">Side-by-Side Comparison</div>
+    <select id="comparePreset" onchange="loadComparePreset()" style="width:200px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 10px;outline:none;">
+      <option value="0">K₄ Complete</option>
+      <option value="1">Cycle C₅</option>
+      <option value="2">Diamond</option>
+      <option value="3">Bipartite K₂,₃</option>
+    </select>
+    <button class="btn btn-primary" onclick="runComparison()">▶ Run Both</button>
+    <button class="btn btn-danger" onclick="resetComparison()">↺ Reset</button>
+  </div>
+  <div class="compare-layout">
+    <div class="compare-card">
+      <div class="compare-card-header">
+        Brute Force (Exact) <span class="badge badge-red">O(2ⁿ)</span>
+      </div>
+      <div style="padding:16px">
+        <svg id="svgBF" viewBox="0 0 320 280" style="width:100%;height:280px;background:var(--surface2);border-radius:8px"></svg>
+        <div class="stats-grid" style="margin-top:12px">
+          <div class="stat-card"><div class="stat-val red" id="bfCut">—</div><div class="stat-label">Cut Size</div></div>
+          <div class="stat-card"><div class="stat-val orange" id="bfOps">—</div><div class="stat-label">Partitions Tried</div></div>
+        </div>
+        <div class="explain-box" style="margin-top:12px;font-size:12px" id="bfExplain">Ready to run brute force.</div>
+      </div>
+    </div>
+    <div class="compare-card">
+      <div class="compare-card-header">
+        Local Search (Greedy) <span class="badge badge-green">O(n·|E|)</span>
+      </div>
+      <div style="padding:16px">
+        <svg id="svgLS" viewBox="0 0 320 280" style="width:100%;height:280px;background:var(--surface2);border-radius:8px"></svg>
+        <div class="stats-grid" style="margin-top:12px">
+          <div class="stat-card"><div class="stat-val" id="lsCut">—</div><div class="stat-label">Cut Size</div></div>
+          <div class="stat-card"><div class="stat-val orange" id="lsOps">—</div><div class="stat-label">Vertex Flips</div></div>
+        </div>
+        <div class="explain-box" style="margin-top:12px;font-size:12px" id="lsExplain">Ready to run local search.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===================== EDUCATION PANEL ===================== -->
+<div class="panel" id="panel-education">
+<div class="edu-layout">
+  <h2 style="font-size:22px;font-weight:700;margin-bottom:24px">NP-Completeness of Max-Cut</h2>
+
+  <!-- Overview -->
+  <div class="edu-card collapsible">
+    <div class="coll-header" onclick="toggleColl(this)">
+      <span class="coll-title">Problem Definition & Overview</span>
+      <span class="coll-arrow">▲</span>
+    </div>
+    <div class="coll-body">
+      <p><strong>Max-Cut Problem:</strong> Given an undirected graph G = (V, E) and integer k, does there exist a partition of V into sets S and V∖S such that at least k edges cross the cut?</p>
+      <div class="math-block">
+        Input: Graph G = (V, E), integer k<br>
+        Question: ∃ partition (S, V∖S) such that |cut(S, V∖S)| ≥ k?<br>
+        cut(S, V∖S) = { (u,v) ∈ E : u ∈ S, v ∈ V∖S }
+      </div>
+      <p>Max-Cut arises in VLSI design (minimize wire crossings), statistical physics (Ising spin glass models), and network clustering. The celebrated Goemans-Williamson SDP achieves a 0.878 approximation, but finding the exact optimum is NP-hard.</p>
+      <div class="concept-grid" style="margin-top:16px">
+        <div class="concept-card">
+          <h4>Why It Matters</h4>
+          <p>Max-Cut is one of Karp's original 21 NP-complete problems. Its intractability has practical consequences — every exact algorithm requires exponential time in the worst case.</p>
+        </div>
+        <div class="concept-card">
+          <h4>Applications</h4>
+          <p>Circuit layout, statistical physics, community detection in social networks, image segmentation, and quantum computing (QAOA algorithm targets Max-Cut).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 1: In NP -->
+  <div class="edu-card collapsible" style="margin-top:0;border-top:0">
+    <div class="coll-header" onclick="toggleColl(this)">
+      <span class="coll-title">Step 1: Max-Cut ∈ NP</span>
+      <span class="coll-arrow">▲</span>
+    </div>
+    <div class="coll-body">
+      <div class="proof-step">
+        <div class="proof-num">Certificate</div>
+        <div class="proof-content">A proposed solution is a partition: a subset S ⊆ V. This certificate has size O(|V|), which is polynomial.</div>
+      </div>
+      <div class="proof-step">
+        <div class="proof-num">Verifier</div>
+        <div class="proof-content">Given certificate S, count the edges crossing: iterate over every edge (u,v) ∈ E and check if exactly one endpoint is in S. This takes O(|E|) time — polynomial in the input size.</div>
+      </div>
+      <div class="proof-step">
+        <div class="proof-num">Conclusion</div>
+        <div class="proof-content">Since we can <strong>verify</strong> any claimed solution in polynomial time, <strong>Max-Cut ∈ NP</strong>. ✓</div>
+      </div>
+      <div class="math-block">
+        Verify(G, k, S):
+          cut_size ← |{ (u,v) ∈ E : exactly one of u,v is in S }|
+          return cut_size ≥ k                              // O(|E|)
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Reduction -->
+  <div class="edu-card collapsible" style="margin-top:0;border-top:0">
+    <div class="coll-header" onclick="toggleColl(this)">
+      <span class="coll-title">Step 2: NAE-3-SAT ≤ₚ Max-Cut</span>
+      <span class="coll-arrow">▲</span>
+    </div>
+    <div class="coll-body">
+      <p><strong>NAE-3-SAT</strong> (Not-All-Equal 3-SAT): Given a 3-CNF formula, does there exist a truth assignment where in every clause, the three literals are not all equal (not all true and not all false)?</p>
+      <p style="margin-top:10px">NAE-3-SAT is NP-complete (provable from 3-SAT). We reduce it to Max-Cut.</p>
+
+      <div class="reduction-diagram" style="margin:16px 0">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Reduction Chain (NP-hardness inheritance)</div>
+        <div class="rd-row">
+          <div class="rd-box np">3-SAT</div>
+          <div class="rd-arrow">≤ₚ</div>
+          <div class="rd-box nae">NAE-3-SAT</div>
+          <div class="rd-arrow">≤ₚ</div>
+          <div class="rd-box mc">Max-Cut</div>
+        </div>
+      </div>
+
+      <div class="proof-step">
+        <div class="proof-num">Construction</div>
+        <div class="proof-content">
+          Given NAE-3-SAT formula φ with variables x₁…xₙ and clauses C₁…Cₘ, build graph G:
+          <br><br>
+          • For each variable xᵢ: add nodes xᵢ and x̄ᵢ, and add edge (xᵢ, x̄ᵢ).
+          <br>
+          • For each clause (a ∨ b ∨ c): add edges (a,b), (b,c), (a,c) — forming a triangle on the three literal nodes.
+          <br>
+          • Set k = m (one cut per clause triangle is required).
+        </div>
+      </div>
+      <div class="proof-step">
+        <div class="proof-num">Forward (⇒)</div>
+        <div class="proof-content">
+          <strong>If φ is NAE-satisfiable, then G has a cut of size ≥ m + n.</strong><br>
+          Partition S: place xᵢ in S iff xᵢ = true. Since each variable-edge (xᵢ, x̄ᵢ) is always cut (one true, one false), all n variable-edges cross. For each clause triangle, NAE guarantees not all literals are equal, so at least one edge in each triangle crosses. Total cut ≥ m + n.
+        </div>
+      </div>
+      <div class="proof-step">
+        <div class="proof-num">Backward (⇐)</div>
+        <div class="proof-content">
+          <strong>If G has a large enough cut, then φ is NAE-satisfiable.</strong><br>
+          Given partition (S, V∖S) achieving the cut, assign xᵢ = true iff xᵢ ∈ S. The variable-edges ensure xᵢ and x̄ᵢ are on opposite sides. For each clause, if all three literals were on the same side, the triangle would contribute 0 cut edges — contradicting the cut bound. So each clause has literals on both sides → NAE condition satisfied. ✓
+        </div>
+      </div>
+      <div class="proof-step">
+        <div class="proof-num">Poly-time</div>
+        <div class="proof-content">
+          Construction creates O(n + m) nodes and O(n + 3m) edges — polynomial in formula size. ✓
+        </div>
+      </div>
+      <div class="math-block">
+        |V| = 2n + dummy nodes = O(n)
+        |E| = n (var-edges) + 3m (clause triangles) = O(n + m)
+        Construction time: O(n + m)  ← polynomial ✓
+      </div>
+    </div>
+  </div>
+
+  <!-- 0.5 approximation proof -->
+  <div class="edu-card collapsible" style="margin-top:0;border-top:0">
+    <div class="coll-header" onclick="toggleColl(this)">
+      <span class="coll-title">0.5-Approximation Guarantee (CLO-3)</span>
+      <span class="coll-arrow">▲</span>
+    </div>
+    <div class="coll-body">
+      <p><strong>Claim:</strong> At a local maximum of the greedy local search, the cut value ≥ |E|/2.</p>
+      <div class="proof-step">
+        <div class="proof-num">Key Insight</div>
+        <div class="proof-content">At a local optimum, no single vertex flip improves the cut. So for each vertex v, the number of edges to the opposite side ≥ edges to the same side.</div>
+      </div>
+      <div class="proof-step">
+        <div class="proof-num">Formal Proof</div>
+        <div class="proof-content">
+          For vertex v in partition S, let dₛ(v) = edges to V∖S (cut edges), dᵢ(v) = edges to S (internal). At local max: dₛ(v) ≥ dᵢ(v) for all v. Summing over all v: Σ dₛ(v) ≥ Σ dᵢ(v). Each cut edge contributes 1 to each side's sum, each internal edge contributes 2. So 2·|cut| ≥ 2·|internal|, giving |cut| ≥ |internal| ≥ |E|/2.
+        </div>
+      </div>
+      <div class="math-block">
+        At local max:  ∀v: dₛ(v) ≥ dᵢ(v)
+        Sum over V:    2·|cut| ≥ 2·|internal|
+        Since |cut| + |internal| = |E|:
+             |cut| ≥ |E|/2  ← 0.5-approximation ✓
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ============================================================
+//  DATA & STATE
+// ============================================================
+const PRESETS = [
+  { name:'K₄ Complete',    edges:'0-1,0-2,0-3,1-2,1-3,2-3' },
+  { name:'Cycle C₅',       edges:'0-1,1-2,2-3,3-4,4-0' },
+  { name:'Diamond',        edges:'0-1,1-2,2-3,3-0,0-2' },
+  { name:'Bipartite K₂,₃', edges:'0-3,0-4,0-5,1-3,1-4,1-5,2-3,2-4,2-5' },
+  { name:'Path P₅',        edges:'0-1,1-2,2-3,3-4' },
+  { name:'Petersen',       edges:'0-1,1-2,2-3,3-4,4-0,0-5,1-6,2-7,3-8,4-9,5-7,7-9,9-6,6-8,8-5' },
+];
+
+let graph = { nodes:[], edges:[] };
+let partition = []; // true = S, false = V\S
+let steps = [];
+let stepIdx = 0;
+let playing = false;
+let playTimer = null;
+let ops = 0;
+let activePreset = 2;
+
+// ============================================================
+//  PARSING & LAYOUT
+// ============================================================
+function parseEdges(str) {
+  const edgeSet = new Set();
+  const nodeSet = new Set();
+  const edges = [];
+  str.split(/[,\n]+/).forEach(s => {
+    const m = s.trim().match(/(\d+)\s*[-–]\s*(\d+)/);
+    if (m) {
+      const a = +m[1], b = +m[2];
+      nodeSet.add(a); nodeSet.add(b);
+      const key = Math.min(a,b)+'-'+Math.max(a,b);
+      if (!edgeSet.has(key)) { edgeSet.add(key); edges.push([a,b]); }
+    }
+  });
+  return { nodes: [...nodeSet].sort((a,b)=>a-b), edges };
+}
+
+function circularLayout(nodes, cx, cy, r) {
+  const pos = {};
+  nodes.forEach((n, i) => {
+    const angle = (2*Math.PI*i/nodes.length) - Math.PI/2;
+    pos[n] = { x: cx + r*Math.cos(angle), y: cy + r*Math.sin(angle) };
+  });
+  return pos;
+}
+
+function forceLayout(nodes, edges, width, height, iters=200) {
+  const pos = {};
+  nodes.forEach((n, i) => {
+    const angle = (2*Math.PI*i/nodes.length) - Math.PI/2;
+    pos[n] = { x: width/2 + 140*Math.cos(angle), y: height/2 + 140*Math.sin(angle) };
+  });
+  const k = Math.sqrt(width*height / nodes.length) * 0.8;
+  for (let iter = 0; iter < iters; iter++) {
+    const disp = {}; nodes.forEach(n => { disp[n] = {x:0,y:0}; });
+    // repulsion
+    for (let i=0;i<nodes.length;i++) for (let j=i+1;j<nodes.length;j++) {
+      const a=nodes[i],b=nodes[j];
+      const dx=pos[a].x-pos[b].x, dy=pos[a].y-pos[b].y;
+      const d=Math.max(Math.sqrt(dx*dx+dy*dy),0.01);
+      const f=k*k/d;
+      disp[a].x+=dx/d*f; disp[a].y+=dy/d*f;
+      disp[b].x-=dx/d*f; disp[b].y-=dy/d*f;
+    }
+    // attraction
+    edges.forEach(([a,b]) => {
+      const dx=pos[a].x-pos[b].x, dy=pos[a].y-pos[b].y;
+      const d=Math.max(Math.sqrt(dx*dx+dy*dy),0.01);
+      const f=d*d/k;
+      disp[a].x-=dx/d*f; disp[a].y-=dy/d*f;
+      disp[b].x+=dx/d*f; disp[b].y+=dy/d*f;
+    });
+    const t = Math.max(2, 50*(1-iter/iters));
+    nodes.forEach(n => {
+      const d=Math.sqrt(disp[n].x**2+disp[n].y**2);
+      if(d>0){
+        pos[n].x+=disp[n].x/d*Math.min(d,t);
+        pos[n].y+=disp[n].y/d*Math.min(d,t);
+        pos[n].x=Math.max(40,Math.min(width-40,pos[n].x));
+        pos[n].y=Math.max(40,Math.min(height-40,pos[n].y));
+      }
+    });
+  }
+  return pos;
+}
+
+// ============================================================
+//  BUILD GRAPH
+// ============================================================
+function buildGraph() {
+  const raw = document.getElementById('edgeInput').value;
+  graph = parseEdges(raw);
+  partition = graph.nodes.map((_,i)=>i<Math.ceil(graph.nodes.length/2));
+  stepIdx = 0; steps = []; ops = 0;
+  resetStatusUI();
+  drawGraph('graphSvg', graph, partition, {});
+  updateStats();
+  drawGrowthChart();
+}
+
+function loadPreset(i) {
+  activePreset = i;
+  document.querySelectorAll('.preset-btn').forEach((b,j)=>b.classList.toggle('active',j===i));
+  document.getElementById('edgeInput').value = PRESETS[i].edges;
+  buildGraph();
+}
+
+// ============================================================
+//  DRAW GRAPH
+// ============================================================
+function drawGraph(svgId, g, part, highlight, svgW=700, svgH=380) {
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+  const vb = svg.getAttribute('viewBox').split(' ');
+  const W = +vb[2], H = +vb[3];
+  svg.innerHTML = '';
+
+  if (!g.nodes.length) return;
+
+  const pos = forceLayout(g.nodes, g.edges, W, H, 300);
+
+  // defs for glow
+  const defs = makeSVG('defs');
+  const f = makeSVG('filter'); f.setAttribute('id','glow'); f.setAttribute('x','-50%'); f.setAttribute('y','-50%'); f.setAttribute('width','200%'); f.setAttribute('height','200%');
+  const fe = makeSVG('feGaussianBlur'); fe.setAttribute('stdDeviation','3'); fe.setAttribute('result','blur');
+  const fm = makeSVG('feMerge');
+  ['blur','SourceGraphic'].forEach(r=>{const fn=makeSVG('feMergeNode');fn.setAttribute('in',r);fm.appendChild(fn);});
+  f.appendChild(fe); f.appendChild(fm); defs.appendChild(f); svg.appendChild(defs);
+
+  // edges
+  g.edges.forEach(([a,b]) => {
+    const isCut = part[g.nodes.indexOf(a)] !== part[g.nodes.indexOf(b)];
+    const isHL = highlight.edge && ((highlight.edge[0]===a&&highlight.edge[1]===b)||(highlight.edge[0]===b&&highlight.edge[1]===a));
+    const line = makeSVG('line');
+    line.setAttribute('x1', pos[a].x); line.setAttribute('y1', pos[a].y);
+    line.setAttribute('x2', pos[b].x); line.setAttribute('y2', pos[b].y);
+    line.setAttribute('stroke', isCut ? 'var(--cut-edge)' : 'var(--int-edge)');
+    line.setAttribute('stroke-width', isCut ? (isHL?4:2.5) : (isHL?3:1.5));
+    line.setAttribute('stroke-linecap', 'round');
+    if (isHL) line.setAttribute('filter','url(#glow)');
+    svg.appendChild(line);
+  });
+
+  // nodes
+  g.nodes.forEach((n, i) => {
+    const inS = part[i];
+    const isHL = highlight.vertex === n;
+    const g_ = makeSVG('g');
+    g_.setAttribute('transform',`translate(${pos[n].x},${pos[n].y})`);
+
+    const outer = makeSVG('circle');
+    outer.setAttribute('r', isHL ? 20 : 18);
+    outer.setAttribute('fill', inS ? 'rgba(74,240,160,0.12)' : 'rgba(255,107,157,0.12)');
+    outer.setAttribute('stroke', inS ? 'var(--set-s)' : 'var(--set-v)');
+    outer.setAttribute('stroke-width', isHL ? 3 : 2);
+    if (isHL) outer.setAttribute('filter','url(#glow)');
+
+    const label = makeSVG('text');
+    label.setAttribute('text-anchor','middle');
+    label.setAttribute('dominant-baseline','central');
+    label.setAttribute('fill', inS ? 'var(--set-s)' : 'var(--set-v)');
+    label.setAttribute('font-size','12');
+    label.setAttribute('font-family','JetBrains Mono, monospace');
+    label.setAttribute('font-weight','700');
+    label.textContent = n;
+
+    g_.appendChild(outer); g_.appendChild(label);
+    svg.appendChild(g_);
+  });
+
+  // partition label
+  const labS = makeSVG('text');
+  labS.setAttribute('x',12); labS.setAttribute('y',20);
+  labS.setAttribute('fill','var(--set-s)'); labS.setAttribute('font-size','11');
+  labS.setAttribute('font-family','JetBrains Mono, monospace'); labS.setAttribute('font-weight','700');
+  labS.textContent = 'S = {' + g.nodes.filter((_,i)=>part[i]).join(',') + '}';
+  svg.appendChild(labS);
+
+  const labV = makeSVG('text');
+  labV.setAttribute('x',12); labV.setAttribute('y',36);
+  labV.setAttribute('fill','var(--set-v)'); labV.setAttribute('font-size','11');
+  labV.setAttribute('font-family','JetBrains Mono, monospace'); labV.setAttribute('font-weight','700');
+  labV.textContent = 'V\\S = {' + g.nodes.filter((_,i)=>!part[i]).join(',') + '}';
+  svg.appendChild(labV);
+}
+
+function makeSVG(tag) {
+  return document.createElementNS('http://www.w3.org/2000/svg', tag);
+}
+
+// ============================================================
+//  ALGO STEPS GENERATION
+// ============================================================
+function generateLocalSearchSteps(g, initPart) {
+  const steps = [];
+  const part = [...initPart];
+  const nodes = g.nodes;
+  const edges = g.edges;
+
+  steps.push({ part:[...part], explain:'Initialized random partition. Starting local search...', line:'ls1', highlight:{}, cutSize:countCut(g,part), ops:0 });
+
+  let improved = true, totalOps = 0;
+  let iterations = 0;
+  while (improved && iterations < 1000) {
+    improved = false; iterations++;
+    for (let i=0;i<nodes.length;i++) {
+      const v = nodes[i];
+      totalOps++;
+      const before = countCut(g, part);
+      part[i] = !part[i];
+      const after = countCut(g, part);
+      if (after > before) {
+        improved = true;
+        steps.push({ part:[...part], explain:`Flipped vertex <strong>${v}</strong>: cut ${before} → ${after} (+${after-before}). Improvement found!`, line:'ls7', highlight:{vertex:v}, cutSize:after, ops:totalOps });
+      } else {
+        part[i] = !part[i]; // revert
+        steps.push({ part:[...part], explain:`Vertex <strong>${v}</strong>: flipping gives ${after} cut (no gain). Keeping in current side.`, line:'ls6', highlight:{vertex:v}, cutSize:before, ops:totalOps });
+      }
+    }
+    if (!improved) {
+      steps.push({ part:[...part], explain:`Local maximum reached! No single flip improves the cut. Final cut = <strong>${countCut(g,part)}</strong>`, line:'ls9', highlight:{}, cutSize:countCut(g,part), ops:totalOps });
+    }
+  }
+  return steps;
+}
+
+function generateBruteForceSteps(g) {
+  const n = g.nodes.length;
+  const steps = [];
+  let bestCut = 0, bestMask = 0, ops = 0;
+
+  if (n > 14) {
+    steps.push({ part:Array(n).fill(false), explain:`Graph has ${n} vertices. Brute force would try 2^${n} = ${Math.pow(2,n).toLocaleString()} partitions — too large to animate. Showing first 200 steps only.`, line:'bf2', highlight:{}, cutSize:0, ops:0 });
+  }
+
+  const limit = Math.min(1<<n, 512);
+  for (let mask=0; mask<limit; mask++) {
+    const part = g.nodes.map((_,i) => !!(mask>>i & 1));
+    const cut = countCut(g, part);
+    ops++;
+    if (cut > bestCut) {
+      bestCut = cut; bestMask = mask;
+      steps.push({ part:[...part], explain:`Partition ${mask} (binary: ${mask.toString(2).padStart(n,'0')}): cut = <strong>${cut}</strong> — NEW BEST!`, line:'bf6', highlight:{}, cutSize:cut, ops });
+    } else if (mask % 8 === 0) {
+      steps.push({ part:[...part], explain:`Partition ${mask}: cut = ${cut}. Best so far = ${bestCut}.`, line:'bf4', highlight:{}, cutSize:cut, ops });
+    }
+  }
+  const finalPart = g.nodes.map((_,i) => !!(bestMask>>i & 1));
+  steps.push({ part:[...finalPart], explain:`Done! Optimal cut = <strong>${bestCut}</strong> found after checking ${ops} partitions.`, line:'bf8', highlight:{}, cutSize:bestCut, ops });
+  return steps;
+}
+
+function countCut(g, part) {
+  return g.edges.filter(([a,b]) => {
+    const ia = g.nodes.indexOf(a), ib = g.nodes.indexOf(b);
+    return part[ia] !== part[ib];
+  }).length;
+}
+
+// ============================================================
+//  PLAYBACK
+// ============================================================
+function playAlgo() {
+  if (!steps.length) {
+    const algo = document.getElementById('algoSelect').value;
+    steps = algo === 'greedy'
+      ? generateLocalSearchSteps(graph, partition)
+      : generateBruteForceSteps(graph);
+    stepIdx = 0;
+  }
+  playing = true;
+  document.getElementById('btnPause').disabled = false;
+  document.getElementById('btnPlay').disabled = true;
+  setStatusDot('running');
+  scheduleStep();
+}
+
+function scheduleStep() {
+  if (!playing) return;
+  if (stepIdx >= steps.length) { finishPlayback(); return; }
+  applyStep(steps[stepIdx]);
+  stepIdx++;
+  const speed = +document.getElementById('speedSlider').value;
+  const delay = Math.max(50, 1200 - speed*100);
+  playTimer = setTimeout(scheduleStep, delay);
+}
+
+function stepAlgo() {
+  if (!steps.length) {
+    const algo = document.getElementById('algoSelect').value;
+    steps = algo === 'greedy'
+      ? generateLocalSearchSteps(graph, partition)
+      : generateBruteForceSteps(graph);
+    stepIdx = 0;
+  }
+  pauseAlgo();
+  if (stepIdx < steps.length) { applyStep(steps[stepIdx]); stepIdx++; }
+  if (stepIdx >= steps.length) finishPlayback();
+}
+
+function pauseAlgo() {
+  playing = false;
+  if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+  document.getElementById('btnPause').disabled = true;
+  document.getElementById('btnPlay').disabled = false;
+  setStatusDot('idle');
+}
+
+function finishPlayback() {
+  playing = false;
+  document.getElementById('btnPause').disabled = true;
+  document.getElementById('btnPlay').disabled = true;
+  setStatusDot('done');
+  document.getElementById('statusText').textContent = 'Algorithm complete!';
+}
+
+function resetState() {
+  pauseAlgo();
+  steps = []; stepIdx = 0; ops = 0;
+  if (graph.nodes.length) {
+    partition = graph.nodes.map((_,i)=>i<Math.ceil(graph.nodes.length/2));
+    drawGraph('graphSvg', graph, partition, {});
+  }
+  resetStatusUI();
+  updateStats();
+  clearPseudoHighlight();
+}
+
+function applyStep(s) {
+  partition = s.part;
+  drawGraph('graphSvg', graph, partition, s.highlight || {});
+  document.getElementById('explainBox').innerHTML = s.explain;
+  document.getElementById('stepCounter').textContent = `Step ${stepIdx+1}/${steps.length}`;
+  document.getElementById('statusText').textContent = `Running ${document.getElementById('algoSelect').value === 'greedy' ? 'Local Search' : 'Brute Force'}…`;
+  document.getElementById('statCutSize').textContent = s.cutSize;
+  document.getElementById('statOps').textContent = s.ops;
+  const ratio = graph.edges.length ? (s.cutSize/graph.edges.length).toFixed(2) : '—';
+  document.getElementById('statApprox').textContent = ratio;
+  highlightLine(s.line);
+}
+
+function resetStatusUI() {
+  setStatusDot('idle');
+  document.getElementById('statusText').textContent = 'Ready — press Play or Step to begin';
+  document.getElementById('stepCounter').textContent = 'Step 0';
+  document.getElementById('explainBox').innerHTML = 'Build a graph using the controls on the left, then press <strong>Play</strong> or <strong>Step</strong> to begin.';
+  document.getElementById('btnPlay').disabled = false;
+  document.getElementById('btnPause').disabled = true;
+  clearPseudoHighlight();
+}
+
+function updateStats() {
+  document.getElementById('statTotalEdges').textContent = graph.edges.length;
+  document.getElementById('statCutSize').textContent = countCut(graph, partition);
+}
+
+function setStatusDot(state) {
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot ' + state;
+}
+
+// ============================================================
+//  PSEUDOCODE
+// ============================================================
+let pseudoActive = 0;
+function switchPseudo(i) {
+  pseudoActive = i;
+  document.getElementById('ptab0').classList.toggle('active',i===0);
+  document.getElementById('ptab1').classList.toggle('active',i===1);
+  document.getElementById('pseudoLS').style.display = i===0?'':'none';
+  document.getElementById('pseudoBF').style.display = i===1?'':'none';
+}
+
+function highlightLine(id) {
+  document.querySelectorAll('.pl').forEach(el=>el.classList.remove('highlight'));
+  if (id) { const el=document.getElementById(id); if(el) el.classList.add('highlight'); }
+}
+
+function clearPseudoHighlight() {
+  document.querySelectorAll('.pl').forEach(el=>el.classList.remove('highlight'));
+}
+
+// ============================================================
+//  GROWTH CHART
+// ============================================================
+function drawGrowthChart() {
+  const svg = document.getElementById('growthChart');
+  svg.innerHTML = '';
+  const W=300, H=180, pad=30, chartW=W-pad-10, chartH=H-pad-10;
+  const ns = Array.from({length:10},(_,i)=>i+2);
+  const bfVals = ns.map(n=>Math.min(Math.pow(2,n),1e6));
+  const lsVals = ns.map(n=>n*n*2);
+  const maxVal = Math.max(...bfVals);
+
+  function px(i) { return pad + i*(chartW/(ns.length-1)); }
+  function py(v) { return pad + chartH*(1 - Math.log(v+1)/Math.log(maxVal+1)); }
+
+  // Axes
+  const ax=makeSVG('line'); ax.setAttribute('x1',pad);ax.setAttribute('y1',pad);ax.setAttribute('x2',pad);ax.setAttribute('y2',pad+chartH); ax.setAttribute('stroke','var(--border2)');ax.setAttribute('stroke-width','1'); svg.appendChild(ax);
+  const ay=makeSVG('line'); ay.setAttribute('x1',pad);ay.setAttribute('y1',pad+chartH);ay.setAttribute('x2',pad+chartW);ay.setAttribute('y2',pad+chartH); ay.setAttribute('stroke','var(--border2)');ay.setAttribute('stroke-width','1'); svg.appendChild(ay);
+
+  // X labels
+  [2,4,6,8,10].forEach(n => {
+    const i=n-2, t=makeSVG('text');
+    t.setAttribute('x',px(i));t.setAttribute('y',pad+chartH+14);
+    t.setAttribute('text-anchor','middle');t.setAttribute('fill','var(--text3)');t.setAttribute('font-size','9');t.setAttribute('font-family','JetBrains Mono,monospace');
+    t.textContent=n; svg.appendChild(t);
+  });
+
+  function polyline(vals, color) {
+    const pts = vals.map((v,i)=>`${px(i)},${py(v)}`).join(' ');
+    const pl=makeSVG('polyline');
+    pl.setAttribute('points',pts);pl.setAttribute('fill','none');
+    pl.setAttribute('stroke',color);pl.setAttribute('stroke-width','2');pl.setAttribute('stroke-linecap','round');pl.setAttribute('stroke-linejoin','round');
+    svg.appendChild(pl);
+  }
+  polyline(bfVals,'var(--accent3)');
+  polyline(lsVals,'var(--accent)');
+
+  // axis label
+  const xl=makeSVG('text'); xl.setAttribute('x',pad+chartW/2);xl.setAttribute('y',H-2);xl.setAttribute('text-anchor','middle');xl.setAttribute('fill','var(--text3)');xl.setAttribute('font-size','9');xl.setAttribute('font-family','JetBrains Mono,monospace');xl.textContent='|V|'; svg.appendChild(xl);
+}
+
+// ============================================================
+//  SPEED SLIDER LISTENER
+// ============================================================
+document.getElementById('speedSlider').addEventListener('input', function() {
+  document.getElementById('speedVal').textContent = this.value;
+});
+
+// ============================================================
+//  TABS
+// ============================================================
+function switchTab(tab) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ============================================================
+//  COLLAPSIBLE
+// ============================================================
+function toggleColl(header) {
+  const body = header.nextElementSibling;
+  const arrow = header.querySelector('.coll-arrow');
+  body.classList.toggle('hidden');
+  arrow.textContent = body.classList.contains('hidden') ? '▼' : '▲';
+}
+
+// ============================================================
+//  COMPARISON MODE
+// ============================================================
+let cmpGraph = null;
+
+function loadComparePreset() {
+  const i = +document.getElementById('comparePreset').value;
+  cmpGraph = parseEdges(PRESETS[i].edges);
+  const partInit = cmpGraph.nodes.map((_,j)=>j<Math.ceil(cmpGraph.nodes.length/2));
+  drawGraph('svgBF', cmpGraph, partInit, {}, 320, 280);
+  drawGraph('svgLS', cmpGraph, partInit, {}, 320, 280);
+  document.getElementById('bfCut').textContent='—';document.getElementById('bfOps').textContent='—';
+  document.getElementById('lsCut').textContent='—';document.getElementById('lsOps').textContent='—';
+  document.getElementById('bfExplain').innerHTML='Ready to run.';
+  document.getElementById('lsExplain').innerHTML='Ready to run.';
+}
+
+function runComparison() {
+  if (!cmpGraph) { loadComparePreset(); }
+  const g = cmpGraph;
+  const initPart = g.nodes.map((_,i)=>i<Math.ceil(g.nodes.length/2));
+
+  // Brute force - just find result
+  const n = g.nodes.length;
+  let bfBest=0, bfMask=0, bfOps=0;
+  const limit = Math.min(1<<n, 65536);
+  for (let mask=0; mask<limit; mask++) {
+    bfOps++;
+    const part = g.nodes.map((_,i)=>!!(mask>>i&1));
+    const cut = countCut(g, part);
+    if (cut > bfBest) { bfBest=cut; bfMask=mask; }
+  }
+  const bfPart = g.nodes.map((_,i)=>!!(bfMask>>i&1));
+  drawGraph('svgBF', g, bfPart, {}, 320, 280);
+  document.getElementById('bfCut').textContent = bfBest;
+  document.getElementById('bfOps').textContent = bfOps;
+  document.getElementById('bfExplain').innerHTML = `Tried <strong>${bfOps}</strong> partitions (out of 2^${n}=${Math.pow(2,n).toLocaleString()}). Optimal cut = <strong>${bfBest}</strong>.`;
+
+  // Local search
+  const lsPart = [...initPart];
+  let lsOps=0;
+  let improved=true;
+  while(improved) {
+    improved=false;
+    for(let i=0;i<g.nodes.length;i++) {
+      lsOps++;
+      const before=countCut(g,lsPart);
+      lsPart[i]=!lsPart[i];
+      const after=countCut(g,lsPart);
+      if(after>before){improved=true;}
+      else{lsPart[i]=!lsPart[i];}
+    }
+  }
+  const lsCutVal = countCut(g, lsPart);
+  drawGraph('svgLS', g, lsPart, {}, 320, 280);
+  document.getElementById('lsCut').textContent = lsCutVal;
+  document.getElementById('lsOps').textContent = lsOps;
+  const ratio = (lsCutVal/bfBest).toFixed(3);
+  document.getElementById('lsExplain').innerHTML = `Local search found cut = <strong>${lsCutVal}</strong> in <strong>${lsOps}</strong> vertex evaluations. Approx ratio vs optimal: <strong>${ratio}</strong> (≥0.5 guaranteed ✓)`;
+}
+
+function resetComparison() {
+  cmpGraph = null;
+  ['svgBF','svgLS'].forEach(id=>{ const s=document.getElementById(id); if(s) s.innerHTML=''; });
+  document.getElementById('bfCut').textContent='—'; document.getElementById('bfOps').textContent='—';
+  document.getElementById('lsCut').textContent='—'; document.getElementById('lsOps').textContent='—';
+  document.getElementById('bfExplain').innerHTML='Ready to run.';
+  document.getElementById('lsExplain').innerHTML='Ready to run.';
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+loadPreset(2);
+loadComparePreset();
+drawGrowthChart();
+</script>
+</body>
+</html>
